@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-import pyckle
+import pickle
 
 # Python Object Transfer: protocols
 
-DEFAULT=PIP
+#
+# Factory
+#
+def get_protocol(qos={}):
+    return PIP()
 
 class NotSerializable(Exception):
     def __init__(self, bad_object):
@@ -61,12 +65,14 @@ class Protocol(object):
 
 class PIP(Protocol):
     """ This protocol uses python-standard "pickle" module """
+    @staticmethod
     def marshall(serializable_object):
         try:
             return pickle.dumps(serializable_object)
         except:
             raise NotSerializable(serializable_object)
 
+    @staticmethod
     def unmarshall(object_representation):
         try:
             return pickle.loads(object_representation)
