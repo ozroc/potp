@@ -10,6 +10,33 @@ import logging
 import threading
 import SocketServer
 
+#
+# Factory
+#
+def get_transport(qos={}):
+    return TCPTransport()
+
+#
+# URI encoding/decode
+#
+def encode_SAP(sap_str):
+    try:
+        ttype, sap = sap_str.split('@')
+    except:
+        raise CannotEncodeSAP(sap_str)
+    if ttype == 'null':
+        return TransportSAP()
+    elif ttype == 'tcp':
+        if sap.count(':') == 0:
+            return TCPSAP(address=sap)
+        elif sap.count(':') == 1:
+            address, port = sap.split(':')
+            return TCPSAP(address, int(port))
+        else:
+            raise CannotEncodeSAP(sap_str)
+    else:
+        raise CannotEncodeSAP(sap_str)
+
 _DEB = logging.debug
 _INF = logging.info
 
@@ -170,6 +197,21 @@ class Transport(object):
         raise NotImplementedError()
 
 
+    def create_SAP(self, *args, **kwargs):
+        """ Factory of SAP objects.
+
+        Args:
+            attributes of given SAP.
+
+        Returns:
+            SAP object with desired parameters.
+
+        Raises:
+            none.
+        """
+        return TransportSAP()
+
+
 #
 # Common errors
 #
@@ -186,6 +228,13 @@ class TransportError(Exception):
         self.__cause = cause
     def __str__(self):
         return 'Error in transport (%s)' % self.__cause
+
+
+class CannotEncodeSAP(Exception):
+    def __init__(self, sap_str):
+        self.__sap_str = sap_str
+    def __str__(self):
+        return 'Unable to decode "%s" as SAP' % self.__sap_str
 
 
 #
@@ -311,9 +360,12 @@ class TCPTransport(Transport):
         assert(isinstance(local_sap, TCPSAP))
         _DEB('Create server socket...')
         self.__local = local_sap
-        self.__server = self._TCPBasicServer(
-            (self.__local.address, self.__local.port),
-            self._RequestHandler)
+        addr = self.__local.address
+        port = self.__local.port
+        _DEB('Server address=%s' % addr)
+        _DEB('Server port=%s' % port)
+        self.__server = self._TCPBasicServer((addr, port),
+                                             self._RequestHandler)
         _DEB('Server created in %s:%s' % self.__server.server_address)
         self.__server_thread = threading.Thread(
             target = self.__server.serve_forever)
@@ -337,6 +389,9 @@ class TCPTransport(Transport):
         self.__remote = remote_sap
         self.__client_socket = socket.socket(socket.AF_INET,
                                              socket.SOCK_STREAM)
+        # FIX: if remote is 0.0.0.0, remote could be 127.0.0.1
+        addr = '127.0.0.1' if self.__remote.address == '0.0.0.0' else self.__remote.address
+        
         self.__client_socket.connect((self.__remote.address,
                                       self.__remote.port))
         _DEB('Connected to server')
@@ -360,13 +415,29 @@ class TCPTransport(Transport):
         _DEB('Client received "%s"' % repr(response))
         return response
 
-            
+    def create_sap(self, *args, **kwargs):
+        address = '0.0.0.0'
+        port = __get_free_tcp4_port__()
+        # Positional arguments
+        for position, argument in enumerate(args):
+            if position == 0:
+                address = argument
+            elif position == 1:
+                port = argument
+        # Named arguments
+        if 'address' in kwargs.keys():
+            address = kwargs['address']
+        if 'port' in kwargs.keys():
+            port = kwargs['port']
+        return TCPSAP(address, port)
+
+
 class TCPSAP(TransportSAP):
     def __init__(self, address='0.0.0.0', port=None):
         self.__address = address
-        self.__port = (port if port in [None, 0]
-                       else __get_free_tcp4_port__())
-
+        self.__port = __get_free_tcp4_port__() if (port in [None, 0]) else port
+        _DEB('TCPSAP: %s, %s' % (repr(self.__address), repr(self.__port)))
+        
     @property
     def address(self):
         return self.__address
