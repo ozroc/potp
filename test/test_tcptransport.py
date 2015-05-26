@@ -4,8 +4,7 @@ import sys
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-sys.path.append('../src/')
-import transport
+from potp import transport
 
 sap = transport.TCPSAP('localhost', 10500)
 

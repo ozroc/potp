@@ -5,8 +5,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 import threading
 
-sys.path.append('../src/')
-import endpoint
+from potp import endpoint
 
 server = endpoint.Full()
 client = endpoint.Client()
