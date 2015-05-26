@@ -314,6 +314,7 @@ class TCPTransport(Transport):
 
         def request_handler(self, request):
             if self.callback is None:
+                _DEB('Request received but no callback stablished!')
                 return
             return self.callback(request)
         
@@ -351,6 +352,7 @@ class TCPTransport(Transport):
         return self.__server.callback is not None
     
     def bind(self, callback):
+        _DEB('Bind to %s' % repr(callback))
         self.__request_callback = callback        
         if self.__server is None:
             return
@@ -373,7 +375,7 @@ class TCPTransport(Transport):
         self.__server_thread.start()
         # If bind() is called before open()
         if self.__request_callback is not None:
-            self.bind(self.__request_callback)            
+            self.__server.callback = self.__request_callback
         
     def close(self):
         _DEB('Terminate server socket...')
@@ -389,7 +391,7 @@ class TCPTransport(Transport):
         self.__remote = remote_sap
         self.__client_socket = socket.socket(socket.AF_INET,
                                              socket.SOCK_STREAM)
-        # FIX: if remote is 0.0.0.0, remote could be 127.0.0.1
+        # FIX: if remote is 0.0.0.0, remote could be 127.0.0.1?
         addr = '127.0.0.1' if self.__remote.address == '0.0.0.0' else self.__remote.address
         
         self.__client_socket.connect((self.__remote.address,

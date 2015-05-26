@@ -19,7 +19,7 @@ class NotSerializable(Exception):
     
 class NotInstantiable(Exception):
     def __str__(self):
-        return 'String not instantiable.'
+        return 'Data not instantiable.'
     
 
 class Protocol(object):
@@ -67,15 +67,11 @@ class PIP(Protocol):
     """ This protocol uses python-standard "pickle" module """
     @staticmethod
     def marshall(serializable_object):
-        try:
-            return pickle.dumps(serializable_object)
-        except:
-            raise NotSerializable(serializable_object)
+        return pickle.dumps(serializable_object)
 
     @staticmethod
     def unmarshall(object_representation):
         try:
             return pickle.loads(object_representation)
-        except:
+        except EOFError:
             raise NotInstantiable()
-        

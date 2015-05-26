@@ -9,7 +9,7 @@ sys.path.append('../src/')
 import endpoint
 
 server = endpoint.Full()
-client = endpoint.Full()
+client = endpoint.Client()
 
 def process_request(request):
     print 'Echo: %s' % request
