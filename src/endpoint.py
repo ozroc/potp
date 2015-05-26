@@ -73,13 +73,62 @@ _ERROR = {
     }
 
 class Endpoint(object):
+    def __init__(self, qos={}):
+        self.__protocol = protocols.get_protocol(qos)
+        self.__transport = transport.get_transport(qos)
+
+    @property
+    def protocol(self):
+        return self.__protocol
+
+    @property
+    def transport(self):
+        return self.__transport
+
+    @property
+    def uri(self):
+        return 'potp://%s' % self.transport.sap
+    
+    @property
+    def server_enabled(self):
+        return self.transport.server_mode
+
+    @property
+    def client_enabled(self):
+        return self.transport.client_mode
+
+    def register_request_handler(self, request_handler, id=None):
+        raise NotImplementedError()
+
+    def set_default_handler(self, id):
+        raise NotImplementedError()
+
+    def unregister_handler(self, id):
+        raise NotImplementedError()
+
+    def stop_serving(self):
+        raise NotImplementedError()
+
+    def server_loop(self, sap=None):
+        raise NotImplementedError()
+
+    def connect(self, uri):
+        raise NotImplementedError()
+
+    def disconnect(self):
+        raise NotImplementedError()
+    
+    def request(self, request):
+        raise NotImplementedError()
+
+
+class Full(Endpoint):
     """ This is a POT endpoint.
     You can connect to other endpoint and send/receive from him. """
     
     def __init__(self, qos={}):
-        self.__protocol = protocols.get_protocol(qos)
-        self.__transport = transport.get_transport(qos)
-        self.__transport.bind(self._dispatcher_)
+        Endpoint.__init__(self, qos)
+        self.transport.bind(self._dispatcher_)
         self.__request_handler = {}
         self.__default_handler = None
 
@@ -90,18 +139,6 @@ class Endpoint(object):
         self.__dest_handler = None
         self.__id = str(uuid.uuid4())
         _DEB('Endpoint "%s" created' % self.__id)
-
-    @property
-    def uri(self):
-        return 'potp://%s' % self.__transport.sap
-    
-    @property
-    def server_enabled(self):
-        return self.__transport.server_mode
-
-    @property
-    def client_enabled(self):
-        return self.__transport.client_mode
 
     def register_request_handler(self, request_handler, id=None):
         id = str(uuid.uuid4()) if (id is None) else id
@@ -134,13 +171,13 @@ class Endpoint(object):
         if self.__default_handler is None:
             raise NoDefaultHandlerRegistered()
         if sap is None:
-            sap = self.__transport.create_sap()
+            sap = self.transport.create_sap()
         _DEB('Server SAP: %s' % sap)
-        self.__transport.open(sap)
+        self.transport.open(sap)
         self.__run_as_server = True        
         while self.__run_as_server:
             pass
-        self.__transport.close()
+        self.transport.close()
 
     def connect(self, uri):
         _DEB('Endpoint wants to connect to: %s' % uri)
@@ -157,18 +194,18 @@ class Endpoint(object):
             self.__dest_handler = None
         sap = transport.encode_SAP(sap)
         _DEB('Client SAP: %s' % sap)
-        self.__transport.connect(sap)
+        self.transport.connect(sap)
 
     def disconnect(self):
         _DEB('Endpoint wants to disconnect')
-        self.__transport.disconnect()
+        self.transport.disconnect()
         self.__dest_handler = None
 
     def __marshall__(self, to_send):
-        return self.__protocol.marshall(to_send)
+        return self.protocol.marshall(to_send)
     
     def __unmarshall__(self, received):
-        return self.__protocol.unmarshall(received)
+        return self.protocol.unmarshall(received)
 
     # It is synchronous
     def _dispatcher_(self, request):
@@ -232,7 +269,7 @@ class Endpoint(object):
         request.update({'src': (None if self.__anonymous else self.__id)})
         request.update({'dest': self.__dest_handler})
 
-        reply = self.__transport.send_request(self.__marshall__(request))
+        reply = self.transport.send_request(self.__marshall__(request))
         reply = self.__unmarshall__(reply)
 
         # Client raises exception to upper levels

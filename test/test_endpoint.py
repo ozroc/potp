@@ -6,10 +6,10 @@ logging.basicConfig(level=logging.DEBUG)
 import threading
 
 sys.path.append('../src/')
-import pot
+import endpoint
 
-server = pot.Endpoint()
-client = pot.Endpoint()
+server = endpoint.Full()
+client = endpoint.Full()
 
 def process_request(request):
     print 'Echo: %s' % request
