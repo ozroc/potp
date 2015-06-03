@@ -168,8 +168,8 @@ class Server(Endpoint):
 
     def server_loop(self, sap=None):
         _DEB('Starting server loop')
-        if self.__default_handler is None:
-            raise NoDefaultHandlerRegistered()
+        # if self.__default_handler is None:
+        #     raise NoDefaultHandlerRegistered()
         if sap is None:
             sap = self.transport.create_sap()
         _DEB('Server SAP: %s' % sap)
@@ -263,11 +263,13 @@ class Client(Endpoint):
         self.transport.disconnect()
         self.__dest_handler = None
         
-    def request(self, request):
+    def request(self, request, dest_handler=None):
         if not self.client_enabled:
             raise EndpointNotConnected()
 
-        _DEB('Send request: "%s"' % repr(request))
+        handler = self.__dest_handler if dest_handler is None else dest_handler
+        
+        _DEB('Send request: "%s" [%s]' % (repr(request), handler))
         # Convert to dict
         request = { 'req': request }
         request.update({'src': (self.id)})
@@ -279,9 +281,9 @@ class Client(Endpoint):
         # Client raises exception to upper levels
         try:
             self.__check_message_reply__(reply)
-        except AnnonymousMessage:
+        except AnonymousMessage:
             if not self.allow_anonymous:
-                raise AnnonymousMessage()
+                raise AnonymousMessage()
             reply.update({'dest': self.id})
             
         if self.id != reply['dest']:
