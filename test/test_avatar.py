@@ -56,7 +56,7 @@ print '@Property:', client_object.value
 print 'sum(10):', client_object.sum(10)
 client_object.increment(5)
 print 'increment(5)'
-print '@Property: ', client_object.value
+print '@Property:', client_object.value
 
 client.disconnect()
 server.stop_serving()
