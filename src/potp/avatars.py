@@ -87,18 +87,23 @@ class Avatar(object):
             return self.__avatar_attach__()
         
         # Normal request
+        ret = {}
         try:
             member_name = request['member']
             member = getattr(self, member_name)
             _DEB('Proxy request: %s' % member_name)
-            ret =  member if not callable(member) else member(
-                *request['args'],
-                **request['kwargs'])
+            ret.update({
+                'return': member if not callable(member) else member(
+                    *request['args'], **request['kwargs'])
+            })
         except Exception, e:
-            _DEB('Exception: %s' % e)
-            ret = e
-        ret = { 'return': ret }
-        return ret
+            _DEB('EXCEPTION: %s (%s)' % (e, type(e)))
+            ret.update({
+                'return': e,
+                'is_exception': True
+            })
+        finally:
+            return ret
 
 
 class AvatarProxy(object):
@@ -139,7 +144,10 @@ class AvatarProxy(object):
                                         ' (property)' if is_property else ''))
         exec('''%(property)s
 def _%(member)s(self, *args, **kwargs):
-    return self.__dispatch__('%(member)s', *args, **kwargs)
+    try:
+        return self.__dispatch__('%(member)s', *args, **kwargs)
+    except Exception, e:
+        raise e
 setattr(self.__class__, '%(member)s', _%(member)s)
             ''' % {
                 'member': name,
@@ -152,4 +160,13 @@ setattr(self.__class__, '%(member)s', _%(member)s)
             'member': op,
             'args': args,
             'kwargs': kwargs}, self.__aid)
-        return response['return']
+        _DEB('Response: %s' % response)
+        if response.get('is_exception', False):
+            if isinstance(response['return'], Exception):
+                raise response['return']
+            else:
+                return response['return']
+        else:
+            return response['return']
+
+

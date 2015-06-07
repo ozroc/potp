@@ -25,6 +25,9 @@ class A(potp.avatars.Avatar):
     def increment(self, value):
         self.__val = self.value + value
 
+    def divide(self, d):
+        return float(self.__val) / float(d)
+
 # Create instance at server
 server_object = A(10)
 
@@ -50,13 +53,17 @@ client.connect(server_object.avatar_uri)
 
 # Get remote object
 client_object = potp.avatars.AvatarProxy(client)
-client_object.attach()
+client_object.attach_proxy()
 
 print '@Property:', client_object.value
 print 'sum(10):', client_object.sum(10)
 client_object.increment(5)
 print 'increment(5)'
 print '@Property:', client_object.value
+try:
+    print 'divide(0)', client_object.divide(0)
+except ZeroDivisionError:
+    print 'It works!'
 
 client.disconnect()
 server.stop_serving()
