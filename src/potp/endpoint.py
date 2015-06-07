@@ -8,11 +8,12 @@ import json
 import uuid
 import socket
 import logging
+logger = logging.getLogger(__name__)
+_DEB = logger.debug
 
 import protocols
 import transport
 
-_DEB = logging.debug
 
 #
 # Common errors

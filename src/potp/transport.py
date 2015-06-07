@@ -10,6 +10,11 @@ import logging
 import threading
 import SocketServer
 
+logger = logging.getLogger(__name__)
+_DEB = logger.debug
+_INF = logger.info
+
+
 #
 # Factory
 #
@@ -36,9 +41,6 @@ def encode_SAP(sap_str):
             raise CannotEncodeSAP(sap_str)
     else:
         raise CannotEncodeSAP(sap_str)
-
-_DEB = logging.debug
-_INF = logging.info
 
 _VMTU = 1024
 

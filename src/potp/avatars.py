@@ -2,7 +2,8 @@
 
 import uuid
 import logging
-_DEB = logging.debug
+logger = logging.getLogger(__name__)
+_DEB = logger.debug
 
 
 class AvatarPropertyRequiresAvatar(Exception):
@@ -38,8 +39,10 @@ class Avatar(object):
     __aid = None
     avatar_members = []
     avatar_properties = []
+    avatar_class = None
     def __init__(self):
         self.__aid = str(uuid.uuid4())
+        self.avatar_class = self.__class__.__name__
         # Get public members
         for member in dir(self):
             try:
@@ -75,7 +78,8 @@ class Avatar(object):
         _DEB('Proxy request to attach')
         return {
             'members': self.avatar_members,
-            'properties': self.avatar_properties
+            'properties': self.avatar_properties,
+            'class': self.avatar_class
             }
 
     def __dispatch__(self, request):
@@ -112,6 +116,7 @@ class AvatarProxy(object):
         self.__endpoint = endpoint
         self.__pid = str(uuid.uuid4())
         self.__aid = aid
+        self.__avatar_class = None
         self.__attached = False
         if aid is not None:
             self.attach(aid)
@@ -137,6 +142,8 @@ class AvatarProxy(object):
             self.__create_member__(member)
         for prop in result['properties']:
             self.__create_member__(prop, True)
+        self.__avatar_class = result.get('class', 'unknown')
+        _DEB('Attached to class %s()' % self.__avatar_class)
         self.__attached = True
 
     def __create_member__(self, name, is_property=False):
